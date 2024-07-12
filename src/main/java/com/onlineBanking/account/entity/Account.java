@@ -22,7 +22,8 @@ public class Account implements Serializable {
 	private long id;
 	
 	@Column
-	private long userId;
+	private String userId;
+	
 
 	@Column
 	private long accountNo;
@@ -41,11 +42,11 @@ public class Account implements Serializable {
 		this.id = id;
 	}
 
-	public long getUserId() {
+	public String getUserId() {
 		return userId;
 	}
 
-	public void setUserId(long userId) {
+	public void setUserId(String userId) {
 		this.userId = userId;
 	}
 
