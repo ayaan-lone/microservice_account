@@ -1,5 +1,5 @@
 package com.onlineBanking.account.service;
 
 public interface AccountService {
-	String updateBalance();
+    void createAccountWithCard(long userId, String accountType);
 }

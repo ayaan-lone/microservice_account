@@ -1,30 +1,18 @@
 package com.onlineBanking.account.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.bind.annotation.*;
 import com.onlineBanking.account.service.AccountService;
 
 @RestController
-@RequestMapping("api/v1")
+@RequestMapping("/api/v1")
 public class AccountController {
-	
-	private final AccountService accountService;
-	
-	@Autowired	
-	public AccountController(AccountService accountService) {
-		this.accountService = accountService;
-	}
 
+    @Autowired
+    private AccountService accountService;
 
-
-	@PatchMapping("/update-balance")
-	ResponseEntity<String> updateBalance(){
-		String response = accountService.updateBalance();
-		return ResponseEntity.status(HttpStatus.OK).body(response);
-	}
+    @PostMapping("/create")
+    public void createAccount(@RequestParam long userId, @RequestParam String accountType) {
+        accountService.createAccountWithCard(userId, accountType);
+    }
 }
