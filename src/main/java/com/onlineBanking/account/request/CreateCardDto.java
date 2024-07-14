@@ -7,12 +7,12 @@ public class CreateCardDto {
 	@JsonProperty("userId")
 	private long userId;
 
-	@JsonProperty("accountType")
-	private String accountType;
+	@JsonProperty("accountId")
+	private long accountId;
 
-	public CreateCardDto(long userId, String accountType) {
+	public CreateCardDto(long userId, long accountId) {
 		this.userId = userId;
-		this.accountType = accountType;
+		this.accountId = accountId;
 	}
 
 	public long getUserId() {
@@ -23,12 +23,13 @@ public class CreateCardDto {
 		this.userId = userId;
 	}
 
-	public String getAccountType() {
-		return accountType;
+	public long getAccountId() {
+		return accountId;
 	}
 
-	public void setAccountType(String accountType) {
-		this.accountType = accountType;
+	public void setAccountId(long accountId) {
+		this.accountId = accountId;
 	}
+
 
 }
