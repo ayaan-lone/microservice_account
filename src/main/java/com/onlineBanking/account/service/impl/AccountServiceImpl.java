@@ -13,9 +13,10 @@ import org.springframework.web.client.RestTemplate;
 import com.onlineBanking.account.dao.AccountRepository;
 import com.onlineBanking.account.entity.Account;
 import com.onlineBanking.account.exception.AccountApplicationException;
+import com.onlineBanking.account.request.BalanceDto;
 import com.onlineBanking.account.request.CreateCardDto;
 import com.onlineBanking.account.service.AccountService;
-import com.onlineBanking.account.utils.ConstantUtils;
+import com.onlineBanking.account.util.ConstantUtils;
 
 @Service
 public class AccountServiceImpl implements AccountService {
@@ -54,5 +55,19 @@ public class AccountServiceImpl implements AccountService {
 			throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.ACCOUNT_NOT_FOUND);
 		}
 		return response.getBody();
+	}
+	
+	
+	@Override
+	public String updateAccountBalance(BalanceDto balanceDto) {
+		Account account = accountRepository.findByUserId(balanceDto.getUserId());
+		System.out.println("Balance dto is: " + balanceDto.getUserId());
+		if(balanceDto.getTransactionType().equals("credit")) {
+			account.setBalance(account.getBalance() + balanceDto.getAmount());
+		}else {
+			account.setBalance(account.getBalance() - balanceDto.getAmount());
+		}
+		accountRepository.save(account);
+		return "Balance have been updated";
 	}
 }
