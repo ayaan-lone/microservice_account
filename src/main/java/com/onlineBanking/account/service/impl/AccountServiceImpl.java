@@ -79,4 +79,14 @@ public class AccountServiceImpl implements AccountService {
 		accountRepository.save(account);
 		return "Balance has been updated";
 	}
+// Fetch Account Detail by  userId
+	@Override
+	public Account findAccountByUserId(long userId) throws AccountApplicationException {
+		// TODO Auto-generated method stub
+		
+		return accountRepository.findByUserId(userId);
+	}
+	
+	
+	
 }
