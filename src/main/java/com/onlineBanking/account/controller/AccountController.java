@@ -28,7 +28,7 @@ public class AccountController {
 	}
 	
 	@PostMapping("/update")
-    ResponseEntity<String> updateBalance(@RequestBody BalanceDto balanceDto){
+    ResponseEntity<String> updateBalance(@RequestBody BalanceDto balanceDto) throws AccountApplicationException{
     	String response = accountService.updateAccountBalance(balanceDto);
     	return ResponseEntity.status(HttpStatus.OK).body(response);
     }

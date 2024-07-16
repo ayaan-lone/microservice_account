@@ -6,5 +6,5 @@ import com.onlineBanking.account.request.BalanceDto;
 public interface AccountService {
     void createAccountWithCard(long userId, long accountId) throws AccountApplicationException;
 
-	String updateAccountBalance(BalanceDto balanceDto);
+	String updateAccountBalance(BalanceDto balanceDto) throws AccountApplicationException;
 }

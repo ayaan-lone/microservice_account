@@ -3,12 +3,9 @@ package com.onlineBanking.account.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.Random;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,114 +17,121 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import com.onlineBanking.account.dao.AccountRepository;
 import com.onlineBanking.account.entity.Account;
 import com.onlineBanking.account.exception.AccountApplicationException;
-import com.onlineBanking.account.request.CreateCardDto;
+import com.onlineBanking.account.request.BalanceDto;
 import com.onlineBanking.account.service.impl.AccountServiceImpl;
-import com.onlineBanking.account.utils.ConstantUtils;
+import com.onlineBanking.account.util.ConstantUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class AccountServiceImplTest {
 
-	@Mock
-	private RestTemplate restTemplate;
+    @InjectMocks
+    private AccountServiceImpl accountServiceImpl;
 
-	@Mock
-	private AccountRepository accountRepository;
+    @Mock
+    private AccountRepository accountRepository;
 
-	@InjectMocks
-	private AccountServiceImpl accountServiceImpl;
+    @Mock
+    private RestTemplate restTemplate;
 
-	private Account account;
+    private BalanceDto balanceDto;
 
-	@BeforeEach
-	void setUp() {
-		account = new Account();
-		account.setId(1L);
-		account.setUserId(123L);
-		account.setAccountType("Savings");
-		account.setBalance(0);
-		account.setAccountNo(Math.abs(new Random().nextLong() % 10000000000000000L));
-	}
+    @BeforeEach
+    public void setUp() {
+        balanceDto = new BalanceDto();
+        balanceDto.setUserId(1L);
+        balanceDto.setAmount(100);
+        balanceDto.setTransactionType("credit");
 
-	@Test
-	void testCreateAccountWithCard_Success() throws AccountApplicationException {
-		long userId = 123L;
-		long accountId = 1L;
-		String metadataResponse = "Savings";
-		CreateCardDto requestDto = new CreateCardDto(userId, accountId);
-		HttpEntity<CreateCardDto> httpEntity = new HttpEntity<>(requestDto);
+        accountServiceImpl = new AccountServiceImpl();
+        accountServiceImpl.accountRepository = accountRepository;
+        accountServiceImpl.restTemplate = restTemplate;
+    }
 
-		when(restTemplate.getForEntity(ConstantUtils.METADATA_SERVICE_URL + accountId, String.class))
-				.thenReturn(new ResponseEntity<>(metadataResponse, HttpStatus.OK));
-		when(accountRepository.save(any(Account.class))).thenReturn(account);
-		doNothing().when(restTemplate).exchange(ConstantUtils.CARD_SERVICE_URL, HttpMethod.POST, httpEntity,
-				Object.class);
+    @Test
+    public void testCreateAccountWithCard_Success() throws AccountApplicationException {
+        when(restTemplate.getForEntity(any(String.class), eq(String.class)))
+            .thenReturn(new ResponseEntity<>("SAVINGS", HttpStatus.OK));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        ResponseEntity<Object> responseEntity = new ResponseEntity<>(HttpStatus.OK);
+        when(restTemplate.exchange(eq(ConstantUtils.CARD_SERVICE_URL), eq(HttpMethod.POST), any(HttpEntity.class), eq(Object.class)))
+            .thenReturn(responseEntity);
 
-		accountServiceImpl.createAccountWithCard(userId, accountId);
+        accountServiceImpl.createAccountWithCard(1L, 1001L);
 
-		verify(restTemplate).getForEntity(ConstantUtils.METADATA_SERVICE_URL + accountId, String.class);
-		verify(accountRepository).save(any(Account.class));
-		verify(restTemplate).exchange(ConstantUtils.CARD_SERVICE_URL, HttpMethod.POST, httpEntity, Object.class);
-	}
+        verify(accountRepository).save(any(Account.class));
+        verify(restTemplate).exchange(eq(ConstantUtils.CARD_SERVICE_URL), eq(HttpMethod.POST), any(HttpEntity.class), eq(Object.class));
+    }
 
-	@Test
-	void testCreateAccountWithCard_MetadataServiceNotFound() {
-		long userId = 123L;
-		long accountId = 1L;
+    @Test
+    public void testCreateAccountWithCard_MetadataServiceFail() {
+        when(restTemplate.getForEntity(any(String.class), eq(String.class)))
+            .thenReturn(new ResponseEntity<>(HttpStatus.NOT_FOUND));
 
-		when(restTemplate.getForEntity(ConstantUtils.METADATA_SERVICE_URL + accountId, String.class))
-				.thenReturn(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        AccountApplicationException exception = assertThrows(AccountApplicationException.class, () -> {
+            accountServiceImpl.createAccountWithCard(1L, 1001L);
+        });
 
-		AccountApplicationException exception = assertThrows(AccountApplicationException.class,
-				() -> accountServiceImpl.createAccountWithCard(userId, accountId));
+        assertEquals(HttpStatus.NOT_FOUND, exception.getHttpStatus());
+        assertEquals(ConstantUtils.ACCOUNT_NOT_FOUND, exception.getMessage());
+    }
 
-		assertEquals(ConstantUtils.ACCOUNT_NOT_FOUND, exception.getMessage());
-	}
+    @Test
+    public void testUpdateAccountBalance_Success_Credit() throws AccountApplicationException {
+        Account account = new Account();
+        account.setBalance(200);
+        when(accountRepository.findByUserId(balanceDto.getUserId())).thenReturn(account);
 
-	@Test
-	void testCreateAccountWithCard_AccountRepositoryFailure() {
-		long userId = 123L;
-		long accountId = 1L;
-		String metadataResponse = "Savings";
-		CreateCardDto requestDto = new CreateCardDto(userId, accountId);
-		HttpEntity<CreateCardDto> httpEntity = new HttpEntity<>(requestDto);
+        String response = accountServiceImpl.updateAccountBalance(balanceDto);
 
-		when(restTemplate.getForEntity(ConstantUtils.METADATA_SERVICE_URL + accountId, String.class))
-				.thenReturn(new ResponseEntity<>(metadataResponse, HttpStatus.OK));
-		when(accountRepository.save(any(Account.class))).thenThrow(new RuntimeException("Database error"));
+        assertEquals("Balance have been updated", response);
+        assertEquals(300.0, account.getBalance());
+        verify(accountRepository).save(account);
+    }
 
-		RuntimeException exception = assertThrows(RuntimeException.class,
-				() -> accountServiceImpl.createAccountWithCard(userId, accountId));
+    @Test
+    public void testUpdateAccountBalance_Success_Debit() throws AccountApplicationException {
+        balanceDto.setTransactionType("debit");
+        Account account = new Account();
+        account.setBalance(200);
+        when(accountRepository.findByUserId(balanceDto.getUserId())).thenReturn(account);
 
-		assertEquals("Database error", exception.getMessage());
-		verify(restTemplate).getForEntity(ConstantUtils.METADATA_SERVICE_URL + accountId, String.class);
-		verify(accountRepository).save(any(Account.class));
-	}
+        String response = accountServiceImpl.updateAccountBalance(balanceDto);
+ 
+        assertEquals("Balance have been updated", response);
+        assertEquals(100.0, account.getBalance());
+        verify(accountRepository).save(account);
+    }
 
-	@Test
-	void testCreateAccountWithCard_RestTemplateFailure() {
-		long userId = 123L;
-		long accountId = 1L;
-		String metadataResponse = "Savings";
-		CreateCardDto requestDto = new CreateCardDto(userId, accountId);
-		HttpEntity<CreateCardDto> httpEntity = new HttpEntity<>(requestDto);
+    @Test
+    public void testUpdateAccountBalance_InvalidTransaction() {
+        balanceDto.setTransactionType("invalid");
 
-		when(restTemplate.getForEntity(ConstantUtils.METADATA_SERVICE_URL + accountId, String.class))
-				.thenReturn(new ResponseEntity<>(metadataResponse, HttpStatus.OK));
-		doThrow(new RestClientException("REST template error")).when(restTemplate)
-				.exchange(ConstantUtils.CARD_SERVICE_URL, HttpMethod.POST, httpEntity, Object.class);
+        AccountApplicationException exception = assertThrows(AccountApplicationException.class, () -> {
+            accountServiceImpl.updateAccountBalance(balanceDto);
+        });
 
-		RestClientException exception = assertThrows(RestClientException.class,
-				() -> accountServiceImpl.createAccountWithCard(userId, accountId));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
+        assertEquals(ConstantUtils.INVALID_TRANSACTION, exception.getMessage());
+    }
+    
+    @Test
+    public void testUpdateAccountBalance_InsufficientBalance() {
+        balanceDto.setTransactionType("debit");
+        balanceDto.setAmount(300);
+        Account account = new Account();
+        account.setBalance(200);
+        when(accountRepository.findByUserId(balanceDto.getUserId())).thenReturn(account);
 
-		assertEquals("REST template error", exception.getMessage());
-		verify(restTemplate).getForEntity(ConstantUtils.METADATA_SERVICE_URL + accountId, String.class);
-		verify(accountRepository).save(any(Account.class));
-		verify(restTemplate).exchange(ConstantUtils.CARD_SERVICE_URL, HttpMethod.POST, httpEntity, Object.class);
-	}
+        AccountApplicationException exception = assertThrows(AccountApplicationException.class, () -> {
+            accountServiceImpl.updateAccountBalance(balanceDto);
+        });
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
+        assertEquals(ConstantUtils.BALANCE_NOT_AVAILABLE, exception.getMessage());
+    }
 }
