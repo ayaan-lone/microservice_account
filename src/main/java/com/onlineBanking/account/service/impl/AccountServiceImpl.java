@@ -22,10 +22,10 @@ import com.onlineBanking.account.util.ConstantUtils;
 public class AccountServiceImpl implements AccountService {
 
 	@Autowired
-	private RestTemplate restTemplate;
+	public RestTemplate restTemplate;
 
 	@Autowired
-	private AccountRepository accountRepository;
+	public AccountRepository accountRepository;
 
 	@Override
 	public void createAccountWithCard(long userId, long accountId) throws AccountApplicationException {
@@ -53,21 +53,30 @@ public class AccountServiceImpl implements AccountService {
 
 		if (!response.getStatusCode().is2xxSuccessful()) {
 			throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.ACCOUNT_NOT_FOUND);
-		}
+		} 
 		return response.getBody();
 	}
-	
-	
+
 	@Override
-	public String updateAccountBalance(BalanceDto balanceDto) {
+	public String updateAccountBalance(BalanceDto balanceDto) throws AccountApplicationException {
 		Account account = accountRepository.findByUserId(balanceDto.getUserId());
-		System.out.println("Balance dto is: " + balanceDto.getUserId());
-		if(balanceDto.getTransactionType().equals("credit")) {
+		String transactionType = balanceDto.getTransactionType();
+
+		if (!transactionType.equals("credit") && transactionType.equals("debit")) {
+			throw new AccountApplicationException(HttpStatus.BAD_REQUEST, ConstantUtils.INVALID_TRANSACTION);
+		}
+
+		if (transactionType.equals("credit")) {
 			account.setBalance(account.getBalance() + balanceDto.getAmount());
-		}else {
-			account.setBalance(account.getBalance() - balanceDto.getAmount());
+		} else {
+			long availableBalance = account.getBalance();
+			if (availableBalance - balanceDto.getAmount() >= 0) {
+				account.setBalance(account.getBalance() - balanceDto.getAmount());
+			} else {
+				throw new AccountApplicationException(HttpStatus.BAD_REQUEST, ConstantUtils.BALANCE_NOT_AVAILABLE);
+			}
 		}
 		accountRepository.save(account);
-		return "Balance have been updated";
+		return "Balance has been updated";
 	}
 }
