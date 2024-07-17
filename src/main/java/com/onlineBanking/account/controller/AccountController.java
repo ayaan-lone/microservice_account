@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.onlineBanking.account.entity.Account;
 import com.onlineBanking.account.exception.AccountApplicationException;
 import com.onlineBanking.account.request.BalanceDto;
+import com.onlineBanking.account.request.CreateAccountRequestDto;
 import com.onlineBanking.account.service.AccountService;
 
 @RestController
@@ -24,19 +25,21 @@ public class AccountController {
 
 	// Create a new account and generate a Card
 	@PostMapping("/create")
-	public void createAccount(@RequestParam long userId, @RequestParam long accountId) throws AccountApplicationException {
-		accountService.createAccountWithCard(userId, accountId);
+	public void createAccount(@RequestBody CreateAccountRequestDto createAccountRequestDto)
+			throws AccountApplicationException {
+		accountService.createAccountWithCard(createAccountRequestDto);
 	}
-	
+
 	@PostMapping("/update")
-    ResponseEntity<String> updateBalance(@RequestBody BalanceDto balanceDto) throws AccountApplicationException{
-    	String response = accountService.updateAccountBalance(balanceDto);
-    	return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
-	//To fetch all the accounts associated with a user
-    @GetMapping("/account-detail")
-    public Account getAccountByUserId(@RequestParam long userId) throws AccountApplicationException {
-        
-    	return accountService.findAccountByUserId(userId);
-    }
+	ResponseEntity<String> updateBalance(@RequestBody BalanceDto balanceDto) throws AccountApplicationException {
+		String response = accountService.updateAccountBalance(balanceDto);
+		return ResponseEntity.status(HttpStatus.OK).body(response);
+	}
+
+	// To fetch all the accounts associated with a user
+	@GetMapping("/account-detail")
+	public Account getAccountByUserId(@RequestParam long userId) throws AccountApplicationException {
+
+		return accountService.findAccountByUserId(userId);
+	}
 }

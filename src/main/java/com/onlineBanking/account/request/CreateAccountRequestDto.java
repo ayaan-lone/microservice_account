@@ -1,19 +1,17 @@
 package com.onlineBanking.account.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotEmpty;
 
-public class CreateCardDto {
+public class CreateAccountRequestDto {
 
-	@JsonProperty("userId")
+	@NotEmpty
 	private long userId;
 
-	@JsonProperty("accountId")
+	@NotEmpty
 	private long accountId;
 
-	public CreateCardDto(long userId, long accountId) {
-		this.userId = userId;
-		this.accountId = accountId;
-	}
+	@NotEmpty
+	private long cardId;
 
 	public long getUserId() {
 		return userId;
@@ -31,5 +29,12 @@ public class CreateCardDto {
 		this.accountId = accountId;
 	}
 
+	public long getCardId() {
+		return cardId;
+	}
+
+	public void setCardId(long cardId) {
+		this.cardId = cardId;
+	}
 
 }

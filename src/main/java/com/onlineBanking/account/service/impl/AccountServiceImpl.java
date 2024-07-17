@@ -14,7 +14,8 @@ import com.onlineBanking.account.dao.AccountRepository;
 import com.onlineBanking.account.entity.Account;
 import com.onlineBanking.account.exception.AccountApplicationException;
 import com.onlineBanking.account.request.BalanceDto;
-import com.onlineBanking.account.request.CreateCardDto;
+import com.onlineBanking.account.request.CreateAccountRequestDto;
+import com.onlineBanking.account.request.CreateCardRequestDto;
 import com.onlineBanking.account.service.AccountService;
 import com.onlineBanking.account.util.ConstantUtils;
 
@@ -28,12 +29,12 @@ public class AccountServiceImpl implements AccountService {
 	public AccountRepository accountRepository;
 
 	@Override
-	public void createAccountWithCard(long userId, long accountId) throws AccountApplicationException {
+	public void createAccountWithCard(CreateAccountRequestDto createAccountRequestDto) throws AccountApplicationException {
 		// Create account logic
 		Account account = new Account();
-		account.setUserId(userId);
+		account.setUserId(createAccountRequestDto.getUserId());
 		// Retrieve account type from metadata microservice
-		String accountType = fetchAccountTypeFromMetadata(accountId);
+		String accountType = fetchAccountTypeFromMetadata(createAccountRequestDto.getAccountId());
 		account.setAccountType(accountType);
 		account.setBalance(0);
 		account.setAccountNo(Math.abs(new Random().nextLong() % 10000000000000000L));
@@ -41,8 +42,8 @@ public class AccountServiceImpl implements AccountService {
 		// Save account
 		accountRepository.save(account);
 		// Create a cardDto
-		CreateCardDto request = new CreateCardDto(userId, accountId);
-		HttpEntity<CreateCardDto> httpEntity = new HttpEntity<CreateCardDto>(request);
+		CreateCardRequestDto request = new CreateCardRequestDto(createAccountRequestDto.getUserId(), createAccountRequestDto.getAccountId(), createAccountRequestDto.getCardId());
+		HttpEntity<CreateCardRequestDto> httpEntity = new HttpEntity<CreateCardRequestDto>(request);
 		// Send the DTO to our restTemplate to create a card
 		restTemplate.exchange(ConstantUtils.CARD_SERVICE_URL, HttpMethod.POST, httpEntity, Object.class);
 	}
