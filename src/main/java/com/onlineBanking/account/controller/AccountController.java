@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.onlineBanking.account.entity.Account;
 import com.onlineBanking.account.exception.AccountApplicationException;
-import com.onlineBanking.account.request.BalanceDto;
 import com.onlineBanking.account.request.CreateAccountRequestDto;
+import com.onlineBanking.account.request.UpdateBalanceRequestDto;
 import com.onlineBanking.account.service.AccountService;
 
 @RestController
@@ -30,16 +30,24 @@ public class AccountController {
 		accountService.createAccountWithCard(createAccountRequestDto);
 	}
 
-	@PostMapping("/update")
-	ResponseEntity<String> updateBalance(@RequestBody BalanceDto balanceDto) throws AccountApplicationException {
-		String response = accountService.updateAccountBalance(balanceDto);
-		return ResponseEntity.status(HttpStatus.OK).body(response);
-	}
-
 	// To fetch all the accounts associated with a user
 	@GetMapping("/account-detail")
 	public Account getAccountByUserId(@RequestParam long userId) throws AccountApplicationException {
 
 		return accountService.findAccountByUserId(userId);
+	}
+	
+	@GetMapping("/balance")
+	public ResponseEntity<Double> getAccountBalance(@RequestParam(required = true) long userId) {
+		Double response = accountService.getAccountBalance(userId);
+		return ResponseEntity.status(HttpStatus.OK).body(response);
+	}
+	
+	@PostMapping("/update-balance")
+	public ResponseEntity<String> updateAccountBalance(@RequestBody UpdateBalanceRequestDto updateBalanceRequestDto){
+		
+		String response = accountService.updateBalance(updateBalanceRequestDto);
+		return ResponseEntity.status(HttpStatus.OK).body(response);
+		
 	}
 }
