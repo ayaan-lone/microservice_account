@@ -31,7 +31,7 @@ public class Account implements Serializable {
 	private String accountType;
 
 	@Column
-	private long balance;
+	private Double balance;
 
 	public long getId() {
 		return id;
@@ -65,14 +65,11 @@ public class Account implements Serializable {
 		this.accountType = accountType;
 	}
 
-	public long getBalance() {
+	public Double getBalance() {
 		return balance;
 	}
 
-	public void setBalance(long balance) {
+	public void setBalance(Double balance) {
 		this.balance = balance;
 	}
-
-	
-
 }
