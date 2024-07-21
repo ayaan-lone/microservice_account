@@ -26,6 +26,6 @@ public class CardClientHandler {
         HttpEntity<CreateCardRequestDto> httpEntity = new HttpEntity<>(createCardRequestDto);
 
         // Send the DTO to our restTemplate to create a card
-        restTemplate.exchange(cardServiceUrl, HttpMethod.POST, httpEntity, Object.class);
+        restTemplate.exchange(cardServiceUrl, HttpMethod.POST, httpEntity, String.class);
     }
 }
