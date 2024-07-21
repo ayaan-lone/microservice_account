@@ -16,6 +16,8 @@ import com.onlineBanking.account.request.CreateAccountRequestDto;
 import com.onlineBanking.account.request.UpdateBalanceRequestDto;
 import com.onlineBanking.account.service.AccountService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/v1")
 public class AccountController {
@@ -25,29 +27,32 @@ public class AccountController {
 
 	// Create a new account and generate a Card
 	@PostMapping("/create")
-	public void createAccount(@RequestBody CreateAccountRequestDto createAccountRequestDto)
+	public void createAccount(@Valid @RequestBody CreateAccountRequestDto createAccountRequestDto)
 			throws AccountApplicationException {
 		accountService.createAccountWithCard(createAccountRequestDto);
 	}
 
 	// To fetch all the accounts associated with a user
 	@GetMapping("/account-detail")
-	public Account getAccountByUserId(@RequestParam long userId) throws AccountApplicationException {
+	public ResponseEntity<Account> getAccountByUserId(@RequestParam(required = true) long userId) throws AccountApplicationException {
+		Account response = accountService.findAccountByUserId(userId);
+		return ResponseEntity.status(HttpStatus.OK).body(response);
 
-		return accountService.findAccountByUserId(userId);
 	}
-	
+
 	@GetMapping("/balance")
-	public ResponseEntity<Double> getAccountBalance(@RequestParam(required = true) long userId) {
+	public ResponseEntity<Double> getAccountBalance(@RequestParam(required = true) long userId)
+			throws AccountApplicationException {
 		Double response = accountService.getAccountBalance(userId);
 		return ResponseEntity.status(HttpStatus.OK).body(response);
 	}
-	
+
 	@PostMapping("/update-balance")
-	public ResponseEntity<String> updateAccountBalance(@RequestBody UpdateBalanceRequestDto updateBalanceRequestDto){
-		
+	public ResponseEntity<String> updateAccountBalance(@RequestBody UpdateBalanceRequestDto updateBalanceRequestDto)
+			throws AccountApplicationException {
+
 		String response = accountService.updateBalance(updateBalanceRequestDto);
 		return ResponseEntity.status(HttpStatus.OK).body(response);
-		
+
 	}
 }

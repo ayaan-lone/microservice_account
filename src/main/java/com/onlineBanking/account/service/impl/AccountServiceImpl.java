@@ -1,15 +1,16 @@
 package com.onlineBanking.account.service.impl;
 
-import java.util.Random;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import com.onlineBanking.account.client.CardClientHandler;
+import com.onlineBanking.account.client.MetadataClientHandler;
+import com.onlineBanking.account.client.UserClientHandler;
 import com.onlineBanking.account.dao.AccountRepository;
 import com.onlineBanking.account.entity.Account;
 import com.onlineBanking.account.entity.TransactionType;
@@ -23,71 +24,120 @@ import com.onlineBanking.account.util.ConstantUtils;
 @Service
 public class AccountServiceImpl implements AccountService {
 
-	@Autowired
-	public RestTemplate restTemplate;
+	@Value("${onlineBanking.metadata_service.url}")
+	private String metadataServiceUrl;
+
+	@Value("${onlineBanking.card_service.url}")
+	private String cardServiceUrl;
+
+	@Value("${onlineBanking.userVerified.url}")
+	public String isUserVerifiedUrl;
+
+	private final RestTemplate restTemplate;
+	private final AccountRepository accountRepository;
+	private final UserClientHandler userClientHandler;
+	private final CardClientHandler cardClientHandler;
+	private final MetadataClientHandler metadataClientHandler;
 
 	@Autowired
-	public AccountRepository accountRepository;
+	public AccountServiceImpl(RestTemplate restTemplate, AccountRepository accountRepository,
+			UserClientHandler userClientHandler, CardClientHandler cardClientHandler,
+			MetadataClientHandler metadataClientHandler) {
+		this.restTemplate = restTemplate;
+		this.accountRepository = accountRepository;
+		this.userClientHandler = userClientHandler;
+		this.cardClientHandler = cardClientHandler;
+		this.metadataClientHandler = metadataClientHandler;
+	}
+
+	private Account isAccountPersists(Long userId) throws AccountApplicationException {
+		Optional<Account> accountOptional = accountRepository.findByUserId(userId);
+
+		// If Account does not exist
+		if (!accountOptional.isPresent()) {
+			throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.ACCOUNT_NOT_FOUND + userId);
+		}
+
+		return accountOptional.get();
+	}
+
+	public Long generateAccountNumberUtil() {
+		Long accountNumber;
+		do {
+			accountNumber = (long) (Math.random() * 9000000000L) + 1000000000L;
+		} while (accountRepository.existsByAccountNo(accountNumber));
+		return accountNumber;
+	}
 
 	@Override
-	public void createAccountWithCard(CreateAccountRequestDto createAccountRequestDto) throws AccountApplicationException {
-		// Create account logic
-		Account account = new Account();
-		account.setUserId(createAccountRequestDto.getUserId());
-		// Retrieve account type from metadata microservice
-		String accountType = fetchAccountTypeFromMetadata(createAccountRequestDto.getAccountId());
-		account.setAccountType(accountType);
-		account.setBalance(0.0);
-		account.setAccountNo(Math.abs(new Random().nextLong() % 10000000000000000L));
+	public void createAccountWithCard(CreateAccountRequestDto createAccountRequestDto)
+			throws AccountApplicationException {
+
+		if (userClientHandler.isUserVerified(createAccountRequestDto.getUserId()) == null) {
+			throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.USER_NOT_FOUND);
+		}
 
 		// Save account
+		Account account = new Account();
+		account.setUserId(createAccountRequestDto.getUserId());
+
+		// Retrieve account type from metadata microservice
+		String accountType = metadataClientHandler.fetchAccountTypeFromMetadata(createAccountRequestDto.getAccountId());
+		account.setAccountType(accountType);
+		account.setBalance(0.0);
+
+		// For Unique Account Number
+		account.setAccountNo(generateAccountNumberUtil());
+
+		CreateCardRequestDto request = new CreateCardRequestDto(createAccountRequestDto.getUserId(),
+				createAccountRequestDto.getAccountId(), createAccountRequestDto.getCardId());
+		cardClientHandler.createCard(request);
+
 		accountRepository.save(account);
-		// Create a cardDto
-		CreateCardRequestDto request = new CreateCardRequestDto(createAccountRequestDto.getUserId(), createAccountRequestDto.getAccountId(), createAccountRequestDto.getCardId());
-		HttpEntity<CreateCardRequestDto> httpEntity = new HttpEntity<CreateCardRequestDto>(request);
-		// Send the DTO to our restTemplate to create a card
-		restTemplate.exchange(ConstantUtils.CARD_SERVICE_URL, HttpMethod.POST, httpEntity, Object.class);
+
 	}
 
-	private String fetchAccountTypeFromMetadata(long accountId) throws AccountApplicationException {
-		String metadataUrl = ConstantUtils.METADATA_SERVICE_URL + accountId;
-		ResponseEntity<String> response = restTemplate.getForEntity(metadataUrl, String.class);
 
-		if (!response.getStatusCode().is2xxSuccessful()) {
-			throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.ACCOUNT_NOT_FOUND);
-		} 
-		return response.getBody();
-	}
-
-	
-// Fetch Account Detail by  userId
+	// Fetch Account Detail by userId
 	@Override
 	public Account findAccountByUserId(long userId) throws AccountApplicationException {
 		// TODO Auto-generated method stub
-		
-		return accountRepository.findByUserId(userId);
+		return isAccountPersists(userId);
 	}
 
 	@Override
-	public Double getAccountBalance(long userId) {
-		Account account = accountRepository.findByUserId(userId);
+	public Double getAccountBalance(long userId) throws AccountApplicationException {
+
+		Account account = isAccountPersists(userId);
 		return account.getBalance();
 	}
 
+	// BALANCE UPDATE CHECK
 	@Override
-	public String updateBalance(UpdateBalanceRequestDto updateBalanceRequestDto)  {
-		
-		Account account = accountRepository.findByUserId(updateBalanceRequestDto.getUserId());
-		
-		if(updateBalanceRequestDto.getTransactionType().equals(TransactionType.CREDIT)) {
-			account.setBalance(account.getBalance()+updateBalanceRequestDto.getAmount());
-		}else {
-			account.setBalance(account.getBalance()-updateBalanceRequestDto.getAmount());
+	public String updateBalance(UpdateBalanceRequestDto updateBalanceRequestDto) throws AccountApplicationException {
+
+		Account account = isAccountPersists(updateBalanceRequestDto.getUserId());
+
+		if (account != null) {
+
+			if (updateBalanceRequestDto.getTransactionType().equals(TransactionType.CREDIT)) {
+				account.setBalance(account.getBalance() + updateBalanceRequestDto.getAmount());
+			}
+
+			if (updateBalanceRequestDto.getTransactionType().equals(TransactionType.DEBIT)) {
+
+				if (account.getBalance() <= 0) {
+					throw new AccountApplicationException(HttpStatus.BAD_REQUEST, ConstantUtils.BALANCE_NOT_AVAILABLE);
+				}
+
+				account.setBalance(account.getBalance() - updateBalanceRequestDto.getAmount());
+			}
+
+			accountRepository.save(account);
+			return "Balance has been updated";
 		}
-		accountRepository.save(account);
-		return "Balance have been updated";
+
+		throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.ACCOUNT_NOT_FOUND);
 	}
-	
-	
-	
+
 }
