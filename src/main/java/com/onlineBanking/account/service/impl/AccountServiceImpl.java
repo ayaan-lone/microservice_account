@@ -33,7 +33,6 @@ public class AccountServiceImpl implements AccountService {
 	@Value("${onlineBanking.userVerified.url}")
 	public String isUserVerifiedUrl;
 
-	private final RestTemplate restTemplate;
 	private final AccountRepository accountRepository;
 	private final UserClientHandler userClientHandler;
 	private final CardClientHandler cardClientHandler;
@@ -43,22 +42,11 @@ public class AccountServiceImpl implements AccountService {
 	public AccountServiceImpl(RestTemplate restTemplate, AccountRepository accountRepository,
 			UserClientHandler userClientHandler, CardClientHandler cardClientHandler,
 			MetadataClientHandler metadataClientHandler) {
-		this.restTemplate = restTemplate;
+
 		this.accountRepository = accountRepository;
 		this.userClientHandler = userClientHandler;
 		this.cardClientHandler = cardClientHandler;
 		this.metadataClientHandler = metadataClientHandler;
-	}
-
-	private Account isAccountPersists(Long userId) throws AccountApplicationException {
-		Optional<Account> accountOptional = accountRepository.findByUserId(userId);
-
-		// If Account does not exist
-		if (!accountOptional.isPresent()) {
-			throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.ACCOUNT_NOT_FOUND + userId);
-		}
-
-		return accountOptional.get();
 	}
 
 	public Long generateAccountNumberUtil() {
@@ -70,11 +58,17 @@ public class AccountServiceImpl implements AccountService {
 	}
 
 	@Override
-	public void createAccountWithCard(CreateAccountRequestDto createAccountRequestDto)
+	public String createAccountWithCard(CreateAccountRequestDto createAccountRequestDto)
 			throws AccountApplicationException {
 
 		if (userClientHandler.isUserVerified(createAccountRequestDto.getUserId()) == null) {
 			throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.USER_NOT_FOUND);
+		}
+		Optional<Account> accountOptional = accountRepository.findByUserId(createAccountRequestDto.getUserId());
+
+		// If Account already exist
+		if (accountOptional.isPresent()) {
+			throw new AccountApplicationException(HttpStatus.BAD_REQUEST, ConstantUtils.ACCOUNT_ALREADY_EXISTS);
 		}
 
 		// Save account
@@ -94,21 +88,27 @@ public class AccountServiceImpl implements AccountService {
 		cardClientHandler.createCard(request);
 
 		accountRepository.save(account);
+		return ConstantUtils.ACCOUNT_CREATED;
 
 	}
-
 
 	// Fetch Account Detail by userId
 	@Override
 	public Account findAccountByUserId(long userId) throws AccountApplicationException {
-		// TODO Auto-generated method stub
-		return isAccountPersists(userId);
+		Optional<Account> accountOptional = accountRepository.findByUserId(userId);
+
+		// If Account does not exist
+		if (!accountOptional.isPresent()) {
+			throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.ACCOUNT_NOT_FOUND + userId);
+		}
+
+		return accountOptional.get();
 	}
 
 	@Override
 	public Double getAccountBalance(long userId) throws AccountApplicationException {
 
-		Account account = isAccountPersists(userId);
+		Account account = findAccountByUserId(userId);
 		return account.getBalance();
 	}
 
@@ -116,7 +116,7 @@ public class AccountServiceImpl implements AccountService {
 	@Override
 	public String updateBalance(UpdateBalanceRequestDto updateBalanceRequestDto) throws AccountApplicationException {
 
-		Account account = isAccountPersists(updateBalanceRequestDto.getUserId());
+		Account account = findAccountByUserId(updateBalanceRequestDto.getUserId());
 
 		if (account != null) {
 
@@ -134,7 +134,7 @@ public class AccountServiceImpl implements AccountService {
 			}
 
 			accountRepository.save(account);
-			return "Balance has been updated";
+			return ConstantUtils.BALANCE_UPDATED;
 		}
 
 		throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.ACCOUNT_NOT_FOUND);

@@ -27,9 +27,12 @@ public class AccountController {
 
 	// Create a new account and generate a Card
 	@PostMapping("/create")
-	public void createAccount(@Valid @RequestBody CreateAccountRequestDto createAccountRequestDto)
+	public ResponseEntity<String> createAccount(@Valid @RequestBody CreateAccountRequestDto createAccountRequestDto)
 			throws AccountApplicationException {
-		accountService.createAccountWithCard(createAccountRequestDto);
+		String response = accountService.createAccountWithCard(createAccountRequestDto);
+		return ResponseEntity.status(HttpStatus.OK).body(response);
+
+
 	}
 
 	// To fetch all the accounts associated with a user

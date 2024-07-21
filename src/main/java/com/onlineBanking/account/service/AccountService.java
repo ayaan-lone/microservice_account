@@ -6,7 +6,7 @@ import com.onlineBanking.account.request.CreateAccountRequestDto;
 import com.onlineBanking.account.request.UpdateBalanceRequestDto;
 
 public interface AccountService {
-    void createAccountWithCard(CreateAccountRequestDto createAccountRequestDto) throws AccountApplicationException;
+    String createAccountWithCard(CreateAccountRequestDto createAccountRequestDto) throws AccountApplicationException;
 
 	Account findAccountByUserId(long userId) throws AccountApplicationException;
 
