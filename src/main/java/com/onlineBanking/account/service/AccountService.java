@@ -10,7 +10,7 @@ public interface AccountService {
 
 	Account findAccountByUserId(long userId) throws AccountApplicationException;
 
-	Double getAccountBalance(long userId);
+	Double getAccountBalance(long userId) throws AccountApplicationException;
 
-	String updateBalance(UpdateBalanceRequestDto updateBalanceRequestDto);
+	String updateBalance(UpdateBalanceRequestDto updateBalanceRequestDto) throws AccountApplicationException;
 }

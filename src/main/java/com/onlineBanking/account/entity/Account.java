@@ -15,16 +15,14 @@ public class Account implements Serializable {
 
 	private static final long serialVersionUID = 2452107360223936526L;
 
-
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column
 	private long id;
-	
-	@Column
-	private long userId;
 
-	@Column
+	@Column(nullable = false, unique = true)
+	private long userId;
+	@Column(nullable = false, unique = true)
 	private long accountNo;
 
 	@Column

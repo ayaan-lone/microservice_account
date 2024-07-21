@@ -1,16 +1,15 @@
 package com.onlineBanking.account.request;
 
-import jakarta.validation.constraints.NotEmpty;
-
 public class CreateAccountRequestDto {
 
-	@NotEmpty
+//	@NotEmpty
+//	@NotNull(message = "User ID cannot be null")
 	private long userId;
 
-	@NotEmpty
+//	@NotEmpty
 	private long accountId;
 
-	@NotEmpty
+//	@NotEmpty
 	private long cardId;
 
 	public long getUserId() {
