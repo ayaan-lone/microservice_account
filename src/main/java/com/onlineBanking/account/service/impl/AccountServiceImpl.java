@@ -65,7 +65,7 @@ public class AccountServiceImpl implements AccountService {
 			throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.USER_NOT_FOUND);
 		}
 		Optional<Account> accountOptional = accountRepository.findByUserId(createAccountRequestDto.getUserId());
-
+//
 		// If Account already exist
 		if (accountOptional.isPresent()) {
 			throw new AccountApplicationException(HttpStatus.BAD_REQUEST, ConstantUtils.ACCOUNT_ALREADY_EXISTS);

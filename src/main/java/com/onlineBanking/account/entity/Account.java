@@ -71,3 +71,9 @@ public class Account implements Serializable {
 		this.balance = balance;
 	}
 }
+
+
+//USE FLYWAY FOR ALL MICROSERVICES
+
+
+
