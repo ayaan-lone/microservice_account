@@ -1,6 +1,9 @@
 package com.onlineBanking.account.service.impl;
 
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,6 +41,9 @@ public class AccountServiceImpl implements AccountService {
 	private final CardClientHandler cardClientHandler;
 	private final MetadataClientHandler metadataClientHandler;
 
+	// Use ConcurrentHashMap for thread-safe lock management
+	private final ConcurrentHashMap<Long, Lock> locks = new ConcurrentHashMap<>();
+
 	@Autowired
 	public AccountServiceImpl(RestTemplate restTemplate, AccountRepository accountRepository,
 			UserClientHandler userClientHandler, CardClientHandler cardClientHandler,
@@ -49,7 +55,7 @@ public class AccountServiceImpl implements AccountService {
 		this.metadataClientHandler = metadataClientHandler;
 	}
 
-	public Long generateAccountNumberUtil() {
+	private Long generateAccountNumberUtil() {
 		Long accountNumber;
 		do {
 			accountNumber = (long) (Math.random() * 9000000000L) + 1000000000L;
@@ -66,21 +72,15 @@ public class AccountServiceImpl implements AccountService {
 		}
 		Optional<Account> accountOptional = accountRepository.findByUserId(createAccountRequestDto.getUserId());
 
-		// If Account already exist
 		if (accountOptional.isPresent()) {
 			throw new AccountApplicationException(HttpStatus.BAD_REQUEST, ConstantUtils.ACCOUNT_ALREADY_EXISTS);
 		}
 
-		// Save account
 		Account account = new Account();
 		account.setUserId(createAccountRequestDto.getUserId());
-
-		// Retrieve account type from metadata microservice
 		String accountType = metadataClientHandler.fetchAccountTypeFromMetadata(createAccountRequestDto.getAccountId());
 		account.setAccountType(accountType);
 		account.setBalance(0.0);
-
-		// For Unique Account Number
 		account.setAccountNo(generateAccountNumberUtil());
 
 		CreateCardRequestDto request = new CreateCardRequestDto(createAccountRequestDto.getUserId(),
@@ -89,15 +89,12 @@ public class AccountServiceImpl implements AccountService {
 
 		accountRepository.save(account);
 		return ConstantUtils.ACCOUNT_CREATED;
-
 	}
 
-	// Fetch Account Detail by userId
 	@Override
 	public Account findAccountByUserId(long userId) throws AccountApplicationException {
 		Optional<Account> accountOptional = accountRepository.findByUserId(userId);
 
-		// If Account does not exist
 		if (!accountOptional.isPresent()) {
 			throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.ACCOUNT_NOT_FOUND + userId);
 		}
@@ -107,37 +104,36 @@ public class AccountServiceImpl implements AccountService {
 
 	@Override
 	public Double getAccountBalance(long userId) throws AccountApplicationException {
-
 		Account account = findAccountByUserId(userId);
 		return account.getBalance();
 	}
 
-	// BALANCE UPDATE CHECK
 	@Override
 	public String updateBalance(UpdateBalanceRequestDto updateBalanceRequestDto) throws AccountApplicationException {
+		long userId = updateBalanceRequestDto.getUserId();
+		Lock lock = locks.computeIfAbsent(userId, id -> new ReentrantLock());
+		lock.lock();
+		try {
+			Account account = findAccountByUserId(userId);
 
-		Account account = findAccountByUserId(updateBalanceRequestDto.getUserId());
-
-		if (account != null) {
-
-			if (updateBalanceRequestDto.getTransactionType().equals(TransactionType.CREDIT)) {
-				account.setBalance(account.getBalance() + updateBalanceRequestDto.getAmount());
-			}
-
-			if (updateBalanceRequestDto.getTransactionType().equals(TransactionType.DEBIT)) {
-
-				if (account.getBalance() <= 0) {
-					throw new AccountApplicationException(HttpStatus.BAD_REQUEST, ConstantUtils.BALANCE_NOT_AVAILABLE);
+			if (account != null) {
+				if (updateBalanceRequestDto.getTransactionType().equals(TransactionType.CREDIT)) {
+					account.setBalance(account.getBalance() + updateBalanceRequestDto.getAmount());
+				} else if (updateBalanceRequestDto.getTransactionType().equals(TransactionType.DEBIT)) {
+					if (account.getBalance() < updateBalanceRequestDto.getAmount()) {
+						throw new AccountApplicationException(HttpStatus.BAD_REQUEST,
+								ConstantUtils.BALANCE_NOT_AVAILABLE);
+					}
+					account.setBalance(account.getBalance() - updateBalanceRequestDto.getAmount());
 				}
 
-				account.setBalance(account.getBalance() - updateBalanceRequestDto.getAmount());
+				accountRepository.save(account);
+				return ConstantUtils.BALANCE_UPDATED;
 			}
 
-			accountRepository.save(account);
-			return ConstantUtils.BALANCE_UPDATED;
+			throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.ACCOUNT_NOT_FOUND);
+		} finally {
+			lock.unlock();  // Ensure that the lock is always released
 		}
-
-		throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.ACCOUNT_NOT_FOUND);
 	}
-
 }
