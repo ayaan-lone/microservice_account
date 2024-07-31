@@ -13,7 +13,6 @@ import org.springframework.web.client.RestTemplate;
 
 import com.onlineBanking.account.client.CardClientHandler;
 import com.onlineBanking.account.client.MetadataClientHandler;
-import com.onlineBanking.account.client.UserClientHandler;
 import com.onlineBanking.account.dao.AccountRepository;
 import com.onlineBanking.account.entity.Account;
 import com.onlineBanking.account.entity.TransactionType;
@@ -37,7 +36,6 @@ public class AccountServiceImpl implements AccountService {
 	public String isUserVerifiedUrl;
 
 	private final AccountRepository accountRepository;
-	private final UserClientHandler userClientHandler;
 	private final CardClientHandler cardClientHandler;
 	private final MetadataClientHandler metadataClientHandler;
 
@@ -46,11 +44,10 @@ public class AccountServiceImpl implements AccountService {
 
 	@Autowired
 	public AccountServiceImpl(RestTemplate restTemplate, AccountRepository accountRepository,
-			UserClientHandler userClientHandler, CardClientHandler cardClientHandler,
+		 CardClientHandler cardClientHandler,
 			MetadataClientHandler metadataClientHandler) {
 
 		this.accountRepository = accountRepository;
-		this.userClientHandler = userClientHandler;
 		this.cardClientHandler = cardClientHandler;
 		this.metadataClientHandler = metadataClientHandler;
 	}
@@ -80,11 +77,11 @@ public class AccountServiceImpl implements AccountService {
 		account.setBalance(0.0);
 		account.setAccountNo(generateAccountNumberUtil());
 		
-		CreateCardRequestDto cardDto = new CreateCardRequestDto(createAccountRequestDto.getUserId(),
+		CreateCardRequestDto cardDto = new CreateCardRequestDto(userId,
 				createAccountRequestDto.getAccountId(), createAccountRequestDto.getCardId());
 		cardClientHandler.createCard(cardDto, token);
 		
-		accountRepository.save(account);
+		accountRepository.save(account);	
 		return ConstantUtils.ACCOUNT_CREATED;
 	}
 
