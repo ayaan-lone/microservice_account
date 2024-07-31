@@ -103,31 +103,41 @@ public class AccountServiceImpl implements AccountService {
 	}
 
 	@Override
-	public String updateBalance(UpdateBalanceRequestDto updateBalanceRequestDto) throws AccountApplicationException {
-		long userId = updateBalanceRequestDto.getUserId();
-		Lock lock = locks.computeIfAbsent(userId, id -> new ReentrantLock());
-		lock.lock();
-		try {
+	public String updateBalance(UpdateBalanceRequestDto updateBalanceRequestDto, Long userId) throws AccountApplicationException {
+//		long userId = updateBalanceRequestDto.getUserId();
+//		Lock lock = locks.computeIfAbsent(userId, id -> new ReentrantLock());
+//		lock.lock();
+		
 			Account account = findAccountByUserId(userId);
 
 			if (account != null) {
 				if (updateBalanceRequestDto.getTransactionType().equals(TransactionType.CREDIT)) {
+					System.out.println("Line number 115");
+					
+					
 					account.setBalance(account.getBalance() + updateBalanceRequestDto.getAmount());
-				} else if (updateBalanceRequestDto.getTransactionType().equals(TransactionType.DEBIT)) {
-					if (account.getBalance() < updateBalanceRequestDto.getAmount()) {
-						throw new AccountApplicationException(HttpStatus.BAD_REQUEST,
-								ConstantUtils.BALANCE_NOT_AVAILABLE);
-					}
-					account.setBalance(account.getBalance() - updateBalanceRequestDto.getAmount());
 				}
+//				 else if (updateBalanceRequestDto.getTransactionType().equals(TransactionType.DEBIT)) {
+//					
+//					if (account.getBalance() < updateBalanceRequestDto.getAmount()) {
+//						System.out.println("Line number 122.");
+//						throw new AccountApplicationException(HttpStatus.BAD_REQUEST,
+//								ConstantUtils.BALANCE_NOT_AVAILABLE);
+//					}
+//					System.out.println("The Balance has been Updated ! ");
+//					account.setBalance(account.getBalance() - updateBalanceRequestDto.getAmount());
+//				}
 
 				accountRepository.save(account);
 				return ConstantUtils.BALANCE_UPDATED;
 			}
 
-			throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.ACCOUNT_NOT_FOUND);
-		} finally {
-			lock.unlock();  // Ensure that the lock is always released
-		}
+//			throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.ACCOUNT_NOT_FOUND);
+			return("Balance is Updated ...");
+		
+		
+//		} finally {
+//			lock.unlock();  // Ensure that the lock is always released
+//		}
 	}
 }

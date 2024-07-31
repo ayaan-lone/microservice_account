@@ -55,9 +55,11 @@ public class AccountController {
 	}
 
 	@PostMapping("/update-balance")
-	public ResponseEntity<String> updateAccountBalance(@RequestBody UpdateBalanceRequestDto updateBalanceRequestDto)
+	public ResponseEntity<String> updateAccountBalance(@RequestBody UpdateBalanceRequestDto updateBalanceRequestDto, HttpServletRequest request)
 			throws AccountApplicationException {
-		String response = accountService.updateBalance(updateBalanceRequestDto);
+		Long userId = (Long) request.getAttribute("userId");
+		System.out.println("Update Balance Called !! ");
+		String response = accountService.updateBalance(updateBalanceRequestDto, userId);
 		return ResponseEntity.status(HttpStatus.OK).body(response);
 
 	}

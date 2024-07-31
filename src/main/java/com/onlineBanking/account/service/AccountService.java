@@ -12,5 +12,5 @@ public interface AccountService {
 
 	Double getAccountBalance(long userId) throws AccountApplicationException;
 
-	String updateBalance(UpdateBalanceRequestDto updateBalanceRequestDto) throws AccountApplicationException;
+	String updateBalance(UpdateBalanceRequestDto updateBalanceRequestDto, Long userId) throws AccountApplicationException;
 }
