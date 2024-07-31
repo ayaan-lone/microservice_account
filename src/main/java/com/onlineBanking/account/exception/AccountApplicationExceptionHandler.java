@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.client.HttpClientErrorException;
 
+import com.microservice.common_utils.JwtException;
+
 @ControllerAdvice
 public class AccountApplicationExceptionHandler {
 
@@ -27,5 +29,10 @@ public class AccountApplicationExceptionHandler {
 				.body(httpClientErrorException.getMessage());
 	}
 	
+	@ExceptionHandler(JwtException.class)
+    public ResponseEntity<String> handleJwtException(JwtException ex) {
+        // Return a custom error message and a status code of your choice
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("JWT Error: " + ex.getMessage());
+    }
 
 }

@@ -3,6 +3,7 @@ package com.onlineBanking.account.client;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -22,10 +23,18 @@ public class CardClientHandler {
         this.restTemplate = restTemplate;
     }
     
-    public void createCard(CreateCardRequestDto createCardRequestDto) {
-        HttpEntity<CreateCardRequestDto> httpEntity = new HttpEntity<>(createCardRequestDto);
+    public void createCard(CreateCardRequestDto createCardRequestDto, String token) {
+           
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", token);
+        HttpEntity<CreateCardRequestDto> httpEntity = new HttpEntity<>(createCardRequestDto, headers);
 
-        // Send the DTO to our restTemplate to create a card
-        restTemplate.exchange(cardServiceUrl, HttpMethod.POST, httpEntity, String.class);
+        restTemplate.exchange(
+                cardServiceUrl,
+                HttpMethod.POST,
+                httpEntity,
+                String.class
+        );
+        
     }
 }

@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,6 +17,7 @@ import com.onlineBanking.account.request.CreateAccountRequestDto;
 import com.onlineBanking.account.request.UpdateBalanceRequestDto;
 import com.onlineBanking.account.service.AccountService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @RestController
@@ -27,17 +29,19 @@ public class AccountController {
 
 	// Create a new account and generate a Card
 	@PostMapping("/create")
-	public ResponseEntity<String> createAccount(@Valid @RequestBody CreateAccountRequestDto createAccountRequestDto)
+	public ResponseEntity<String> createAccount(@Valid @RequestHeader("Authorization") String token,
+			@RequestBody CreateAccountRequestDto createAccountRequestDto, HttpServletRequest request)
 			throws AccountApplicationException {
-		String response = accountService.createAccountWithCard(createAccountRequestDto);
+		Long userId = (Long) request.getAttribute("userId");
+		String response = accountService.createAccountWithCard(createAccountRequestDto, token, userId);
 		return ResponseEntity.status(HttpStatus.OK).body(response);
-
 
 	}
 
 	// To fetch all the accounts associated with a user
 	@GetMapping("/account-detail")
-	public ResponseEntity<Account> getAccountByUserId(@RequestParam(required = true) long userId) throws AccountApplicationException {
+	public ResponseEntity<Account> getAccountByUserId(@RequestParam(required = true) long userId)
+			throws AccountApplicationException {
 		Account response = accountService.findAccountByUserId(userId);
 		return ResponseEntity.status(HttpStatus.OK).body(response);
 
