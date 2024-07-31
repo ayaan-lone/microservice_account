@@ -64,29 +64,26 @@ public class AccountServiceImpl implements AccountService {
 	}
 
 	@Override
-	public String createAccountWithCard(CreateAccountRequestDto createAccountRequestDto)
+	public String createAccountWithCard(CreateAccountRequestDto createAccountRequestDto, String token, Long userId)
 			throws AccountApplicationException {
-
-		if (userClientHandler.isUserVerified(createAccountRequestDto.getUserId()) == null) {
-			throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.USER_NOT_FOUND);
-		}
-		Optional<Account> accountOptional = accountRepository.findByUserId(createAccountRequestDto.getUserId());
-
+				
+		Optional<Account> accountOptional = accountRepository.findByUserId(userId);
+          
 		if (accountOptional.isPresent()) {
 			throw new AccountApplicationException(HttpStatus.BAD_REQUEST, ConstantUtils.ACCOUNT_ALREADY_EXISTS);
 		}
-
+		
 		Account account = new Account();
-		account.setUserId(createAccountRequestDto.getUserId());
+		account.setUserId(userId);
 		String accountType = metadataClientHandler.fetchAccountTypeFromMetadata(createAccountRequestDto.getAccountId());
 		account.setAccountType(accountType);
 		account.setBalance(0.0);
 		account.setAccountNo(generateAccountNumberUtil());
-
-		CreateCardRequestDto request = new CreateCardRequestDto(createAccountRequestDto.getUserId(),
+		
+		CreateCardRequestDto cardDto = new CreateCardRequestDto(createAccountRequestDto.getUserId(),
 				createAccountRequestDto.getAccountId(), createAccountRequestDto.getCardId());
-		cardClientHandler.createCard(request);
-
+		cardClientHandler.createCard(cardDto, token);
+		
 		accountRepository.save(account);
 		return ConstantUtils.ACCOUNT_CREATED;
 	}
