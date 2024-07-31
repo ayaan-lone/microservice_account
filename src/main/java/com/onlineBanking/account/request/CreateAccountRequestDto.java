@@ -3,22 +3,10 @@ package com.onlineBanking.account.request;
 public class CreateAccountRequestDto {
 
 //	@NotEmpty
-//	@NotNull(message = "User ID cannot be null")
-	private long userId;
-
-//	@NotEmpty
 	private long accountId;
 
 //	@NotEmpty
 	private long cardId;
-
-	public long getUserId() {
-		return userId;
-	}
-
-	public void setUserId(long userId) {
-		this.userId = userId;
-	}
 
 	public long getAccountId() {
 		return accountId;

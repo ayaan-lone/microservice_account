@@ -40,16 +40,16 @@ public class AccountController {
 
 	// To fetch all the accounts associated with a user
 	@GetMapping("/account-detail")
-	public ResponseEntity<Account> getAccountByUserId(@RequestParam(required = true) long userId)
-			throws AccountApplicationException {
+	public ResponseEntity<Account> getAccountByUserId(HttpServletRequest request) throws AccountApplicationException {
+		Long userId = (Long) request.getAttribute("userId");
 		Account response = accountService.findAccountByUserId(userId);
 		return ResponseEntity.status(HttpStatus.OK).body(response);
 
 	}
 
 	@GetMapping("/balance")
-	public ResponseEntity<Double> getAccountBalance(@RequestParam(required = true) long userId)
-			throws AccountApplicationException {
+	public ResponseEntity<Double> getAccountBalance(HttpServletRequest request) throws AccountApplicationException {
+		Long userId = (Long) request.getAttribute("userId");
 		Double response = accountService.getAccountBalance(userId);
 		return ResponseEntity.status(HttpStatus.OK).body(response);
 	}
@@ -57,7 +57,6 @@ public class AccountController {
 	@PostMapping("/update-balance")
 	public ResponseEntity<String> updateAccountBalance(@RequestBody UpdateBalanceRequestDto updateBalanceRequestDto)
 			throws AccountApplicationException {
-
 		String response = accountService.updateBalance(updateBalanceRequestDto);
 		return ResponseEntity.status(HttpStatus.OK).body(response);
 

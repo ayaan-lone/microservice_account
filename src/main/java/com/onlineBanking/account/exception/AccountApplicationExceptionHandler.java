@@ -1,13 +1,12 @@
 package com.onlineBanking.account.exception;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import io.jsonwebtoken.JwtException; 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.client.HttpClientErrorException;
-
-import com.microservice.common_utils.JwtException;
 
 @ControllerAdvice
 public class AccountApplicationExceptionHandler {
