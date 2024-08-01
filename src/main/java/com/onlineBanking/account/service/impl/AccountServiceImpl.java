@@ -44,8 +44,7 @@ public class AccountServiceImpl implements AccountService {
 
 	@Autowired
 	public AccountServiceImpl(RestTemplate restTemplate, AccountRepository accountRepository,
-		 CardClientHandler cardClientHandler,
-			MetadataClientHandler metadataClientHandler) {
+			CardClientHandler cardClientHandler, MetadataClientHandler metadataClientHandler) {
 
 		this.accountRepository = accountRepository;
 		this.cardClientHandler = cardClientHandler;
@@ -63,25 +62,25 @@ public class AccountServiceImpl implements AccountService {
 	@Override
 	public String createAccountWithCard(CreateAccountRequestDto createAccountRequestDto, String token, Long userId)
 			throws AccountApplicationException {
-				
+
 		Optional<Account> accountOptional = accountRepository.findByUserId(userId);
-          
+
 		if (accountOptional.isPresent()) {
 			throw new AccountApplicationException(HttpStatus.BAD_REQUEST, ConstantUtils.ACCOUNT_ALREADY_EXISTS);
 		}
-		
+
 		Account account = new Account();
 		account.setUserId(userId);
 		String accountType = metadataClientHandler.fetchAccountTypeFromMetadata(createAccountRequestDto.getAccountId());
 		account.setAccountType(accountType);
 		account.setBalance(0.0);
 		account.setAccountNo(generateAccountNumberUtil());
-		
-		CreateCardRequestDto cardDto = new CreateCardRequestDto(userId,
-				createAccountRequestDto.getAccountId(), createAccountRequestDto.getCardId());
+
+		CreateCardRequestDto cardDto = new CreateCardRequestDto(userId, createAccountRequestDto.getAccountId(),
+				createAccountRequestDto.getCardId());
 		cardClientHandler.createCard(cardDto, token);
-		
-		accountRepository.save(account);	
+
+		accountRepository.save(account);
 		return ConstantUtils.ACCOUNT_CREATED;
 	}
 
@@ -104,40 +103,16 @@ public class AccountServiceImpl implements AccountService {
 
 	@Override
 	public String updateBalance(UpdateBalanceRequestDto updateBalanceRequestDto, Long userId) throws AccountApplicationException {
-//		long userId = updateBalanceRequestDto.getUserId();
-//		Lock lock = locks.computeIfAbsent(userId, id -> new ReentrantLock());
-//		lock.lock();
-		
-			Account account = findAccountByUserId(userId);
 
-			if (account != null) {
-				if (updateBalanceRequestDto.getTransactionType().equals(TransactionType.CREDIT)) {
-					System.out.println("Line number 115");
-					
-					
-					account.setBalance(account.getBalance() + updateBalanceRequestDto.getAmount());
-				}
-//				 else if (updateBalanceRequestDto.getTransactionType().equals(TransactionType.DEBIT)) {
-//					
-//					if (account.getBalance() < updateBalanceRequestDto.getAmount()) {
-//						System.out.println("Line number 122.");
-//						throw new AccountApplicationException(HttpStatus.BAD_REQUEST,
-//								ConstantUtils.BALANCE_NOT_AVAILABLE);
-//					}
-//					System.out.println("The Balance has been Updated ! ");
-//					account.setBalance(account.getBalance() - updateBalanceRequestDto.getAmount());
-//				}
+		Account account = findAccountByUserId(userId);
 
-				accountRepository.save(account);
-				return ConstantUtils.BALANCE_UPDATED;
-			}
-
-//			throw new AccountApplicationException(HttpStatus.NOT_FOUND, ConstantUtils.ACCOUNT_NOT_FOUND);
-			return("Balance is Updated ...");
-		
-		
-//		} finally {
-//			lock.unlock();  // Ensure that the lock is always released
-//		}
+		if (updateBalanceRequestDto.getTransactionType().equals(TransactionType.CREDIT)) {
+			account.setBalance(account.getBalance() + updateBalanceRequestDto.getAmount());
+		} else {
+			account.setBalance(account.getBalance() - updateBalanceRequestDto.getAmount());
+		}
+		accountRepository.save(account);
+		return ConstantUtils.BALANCE_UPDATED;
 	}
+
 }
