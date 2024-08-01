@@ -28,7 +28,7 @@ public class AccountController {
 	private AccountService accountService;
 
 	// Create a new account and generate a Card
-	@PostMapping("/create")
+	@PostMapping("/")
 	public ResponseEntity<String> createAccount(@Valid @RequestHeader("Authorization") String token,
 			@RequestBody CreateAccountRequestDto createAccountRequestDto, HttpServletRequest request)
 			throws AccountApplicationException {
